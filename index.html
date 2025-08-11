@@ -315,18 +315,36 @@
         teamForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
+                // Input validation
+                const teamName = teamNameInput.value.trim();
+                const pld = parseInt(pldInput.value);
+                const w = parseInt(wInput.value);
+                const d = parseInt(dInput.value);
+                const l = parseInt(lInput.value);
+                const pf = parseInt(pfInput.value);
+                const pa = parseInt(paInput.value);
+                const pd = parseInt(pdInput.value);
+                const tbp = parseInt(tbpInput.value);
+                const lbp = parseInt(lbpInput.value);
+                const pts = parseInt(ptsInput.value);
+                
+                if (!teamName || isNaN(pld) || isNaN(w) || isNaN(d) || isNaN(l) || isNaN(pf) || isNaN(pa) || isNaN(pd) || isNaN(tbp) || isNaN(lbp) || isNaN(pts)) {
+                    showMessageBox('Please fill out all fields with valid data.', 'error');
+                    return;
+                }
+                
                 const teamData = {
-                    Team: teamNameInput.value,
-                    Pld: parseInt(pldInput.value),
-                    W: parseInt(wInput.value),
-                    D: parseInt(dInput.value),
-                    L: parseInt(lInput.value),
-                    PF: parseInt(pfInput.value),
-                    PA: parseInt(paInput.value),
-                    PD: parseInt(pdInput.value),
-                    TBP: parseInt(tbpInput.value),
-                    LBP: parseInt(lbpInput.value),
-                    Pts: parseInt(ptsInput.value)
+                    Team: teamName,
+                    Pld: pld,
+                    W: w,
+                    D: d,
+                    L: l,
+                    PF: pf,
+                    PA: pa,
+                    PD: pd,
+                    TBP: tbp,
+                    LBP: lbp,
+                    Pts: pts
                 };
 
                 const leagueTableDoc = await getDoc(leagueTableDocRef);
@@ -345,12 +363,16 @@
                     teams.forEach((team, index) => team.Pos = index + 1);
                     
                     await setDoc(leagueTableDocRef, { teams: teams });
-                    teamForm.reset();
                     showMessageBox('Team data saved successfully!', 'success');
+                } else {
+                    showMessageBox('Database document not found. The app will create a new one with your data.', 'error');
+                    await setDoc(leagueTableDocRef, { teams: [teamData] });
                 }
             } catch (error) {
                 console.error("Failed to save data:", error);
                 showMessageBox('Failed to save data. Please check the console for more details.', 'error');
+            } finally {
+                teamForm.reset();
             }
         });
 
@@ -381,7 +403,6 @@
                 const tr = document.createElement('tr');
                 tr.classList.add('cursor-pointer');
                 tr.addEventListener('click', () => {
-                    document.getElementById('team-name-id').value = rowData.Team;
                     teamNameInput.value = rowData.Team;
                     pldInput.value = rowData.Pld;
                     wInput.value = rowData.W;
