@@ -108,9 +108,55 @@
             border-top-right-radius: 0.5rem;
             border-bottom-right-radius: 0.5rem;
         }
+
+        /* Styles for the message box */
+        #message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            width: 90%;
+            max-width: 400px;
+            display: none;
+        }
+        #message-box.error {
+            background-color: #fef2f2;
+            color: #ef4444;
+            border: 1px solid #fca5a5;
+        }
+        #message-box.success {
+            background-color: #f0fdf4;
+            color: #22c55e;
+            border: 1px solid #86efac;
+        }
+        .message-header {
+            font-weight: bold;
+            font-size: 1.125rem;
+            margin-bottom: 0.5rem;
+        }
+        .close-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="bg-gray-100 p-8">
+
+<!-- Message Box UI -->
+<div id="message-box" class="message-box">
+    <button class="close-btn" onclick="document.getElementById('message-box').style.display='none';">&times;</button>
+    <div class="message-header"></div>
+    <div class="message-body"></div>
+</div>
 
 <div id="league-table-container" class="container mx-auto p-4 md:p-8">
     <div class="bg-gray-200 shadow-lg rounded-lg p-6 mb-8">
@@ -205,6 +251,19 @@
         const lbpInput = document.getElementById('lbp');
         const ptsInput = document.getElementById('pts');
         
+        // Function to show the message box
+        function showMessageBox(message, type = 'error') {
+            const messageBox = document.getElementById('message-box');
+            const messageHeader = messageBox.querySelector('.message-header');
+            const messageBody = messageBox.querySelector('.message-body');
+
+            messageBox.className = '';
+            messageBox.classList.add('message-box', type);
+            messageHeader.textContent = type === 'error' ? 'Error!' : 'Success!';
+            messageBody.textContent = message;
+            messageBox.style.display = 'block';
+        }
+
         // Wait for Firebase authentication to be ready
         function waitForAuth() {
             return new Promise(resolve => {
@@ -255,41 +314,43 @@
         // ==========================================================
         teamForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const teamData = {
-                Team: teamNameInput.value,
-                Pld: parseInt(pldInput.value),
-                W: parseInt(wInput.value),
-                D: parseInt(dInput.value),
-                L: parseInt(lInput.value),
-                PF: parseInt(pfInput.value),
-                PA: parseInt(paInput.value),
-                PD: parseInt(pdInput.value),
-                TBP: parseInt(tbpInput.value),
-                LBP: parseInt(lbpInput.value),
-                Pts: parseInt(ptsInput.value)
-            };
+            try {
+                const teamData = {
+                    Team: teamNameInput.value,
+                    Pld: parseInt(pldInput.value),
+                    W: parseInt(wInput.value),
+                    D: parseInt(dInput.value),
+                    L: parseInt(lInput.value),
+                    PF: parseInt(pfInput.value),
+                    PA: parseInt(paInput.value),
+                    PD: parseInt(pdInput.value),
+                    TBP: parseInt(tbpInput.value),
+                    LBP: parseInt(lbpInput.value),
+                    Pts: parseInt(ptsInput.value)
+                };
 
-            const leagueTableDoc = await doc(window.db, `artifacts/${appId}/public/data/league-table`).get();
-            if (leagueTableDoc.exists()) {
-                const teams = leagueTableDoc.data().teams;
-                // Find and update the team
-                const teamIndex = teams.findIndex(team => team.Team === teamData.Team);
-                if (teamIndex > -1) {
-                    teams[teamIndex] = teamData;
-                } else {
-                    // Add new team if not found
-                    teams.push(teamData);
+                const leagueTableDoc = await doc(window.db, `artifacts/${appId}/public/data/league-table`).get();
+                if (leagueTableDoc.exists()) {
+                    const teams = leagueTableDoc.data().teams;
+                    const teamIndex = teams.findIndex(team => team.Team === teamData.Team);
+                    if (teamIndex > -1) {
+                        teams[teamIndex] = teamData;
+                    } else {
+                        teams.push(teamData);
+                    }
+                    teams.sort((a, b) => {
+                        if (b.Pts !== a.Pts) return b.Pts - a.Pts;
+                        return b.PD - a.PD;
+                    });
+                    teams.forEach((team, index) => team.Pos = index + 1);
+                    
+                    await setDoc(leagueTableDocRef, { teams: teams });
+                    teamForm.reset();
+                    showMessageBox('Team data saved successfully!', 'success');
                 }
-                // Re-sort the table by points and then by PD
-                teams.sort((a, b) => {
-                    if (b.Pts !== a.Pts) return b.Pts - a.Pts;
-                    return b.PD - a.PD;
-                });
-                // Recalculate position
-                teams.forEach((team, index) => team.Pos = index + 1);
-                
-                await setDoc(leagueTableDocRef, { teams: teams });
-                teamForm.reset();
+            } catch (error) {
+                console.error("Failed to save data:", error);
+                showMessageBox('Failed to save data. Please check the console for more details.', 'error');
             }
         });
 
@@ -300,7 +361,6 @@
             const tableHeadRow = document.querySelector('#league-table thead tr');
             const tableBody = document.querySelector('#league-table tbody');
 
-            // Clear previous table content
             tableHeadRow.innerHTML = '';
             tableBody.innerHTML = '';
 
@@ -309,7 +369,6 @@
                 return;
             }
 
-            // Generate table headers from the keys of the first data object
             const headers = Object.keys(leagueTableData[0]);
             headers.forEach(headerText => {
                 const th = document.createElement('th');
@@ -318,7 +377,6 @@
                 tableHeadRow.appendChild(th);
             });
 
-            // Generate table rows and cells from the data array
             leagueTableData.forEach(rowData => {
                 const tr = document.createElement('tr');
                 tr.classList.add('cursor-pointer');
