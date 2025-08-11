@@ -9,51 +9,29 @@
     <!-- html2canvas for taking a screenshot of the table -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+  <script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
 
-        // Firebase configuration and initialization
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyBxM-mbtor0ABUfubnKyfx8tPKvwOkJcXs",
+    authDomain: "leaguetable-a39e6.firebaseapp.com",
+    projectId: "leaguetable-a39e6",
+    storageBucket: "leaguetable-a39e6.firebasestorage.app",
+    messagingSenderId: "599210530529",
+    appId: "1:599210530529:web:e7ab9542b27bc001a789a0",
+    measurementId: "G-J0SCL36FB9"
+  };
 
-        if (Object.keys(firebaseConfig).length > 0) {
-            const app = initializeApp(firebaseConfig);
-            window.db = getFirestore(app);
-            window.auth = getAuth(app);
-        } else {
-            console.error("Firebase config is missing. Data persistence will not work.");
-        }
-
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        // Function to handle authentication
-        async function authenticateUser() {
-            if (!window.auth) return;
-            try {
-                if (initialAuthToken) {
-                    await signInWithCustomToken(window.auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(window.auth);
-                }
-            } catch (error) {
-                console.error("Authentication failed:", error);
-            }
-        }
-        
-        window.isAuthReady = false;
-        // Listen for authentication state changes to set the ready flag
-        onAuthStateChanged(window.auth, (user) => {
-            if (user) {
-                console.log("User is authenticated:", user.uid);
-                window.isAuthReady = true;
-            } else {
-                console.log("User is not authenticated. Using anonymous sign-in.");
-                authenticateUser();
-            }
-        });
-    </script>
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
     <style>
         body {
             font-family: 'Calibri', sans-serif;
