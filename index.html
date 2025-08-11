@@ -285,6 +285,7 @@
         // ==========================================================
         // Fetches data from Firestore in real-time
         onSnapshot(leagueTableDocRef, (docSnap) => {
+            console.log("onSnapshot fired.");
             if (docSnap.exists() && docSnap.data().teams) {
                 const leagueTableData = docSnap.data().teams;
                 renderTable(leagueTableData);
@@ -305,7 +306,6 @@
                     { Pos: 11, Team: "Deepings", Pld: 20, W: 1, D: 0, L: 19, PF: 188, PA: 683, PD: -495, TBP: 3, LBP: 2, Pts: -11 }
                 ];
                 setDoc(leagueTableDocRef, { teams: initialData });
-                renderTable(initialData);
             }
         });
 
@@ -314,6 +314,7 @@
         // ==========================================================
         teamForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            console.log("Form submission event fired.");
             try {
                 // Input validation
                 const teamName = teamNameInput.value.trim();
@@ -330,6 +331,7 @@
                 
                 if (!teamName || isNaN(pld) || isNaN(w) || isNaN(d) || isNaN(l) || isNaN(pf) || isNaN(pa) || isNaN(pd) || isNaN(tbp) || isNaN(lbp) || isNaN(pts)) {
                     showMessageBox('Please fill out all fields with valid data.', 'error');
+                    console.error("Validation failed: Missing or invalid input.");
                     return;
                 }
                 
@@ -346,9 +348,11 @@
                     LBP: lbp,
                     Pts: pts
                 };
-
+                console.log("Attempting to get database document...");
                 const leagueTableDoc = await getDoc(leagueTableDocRef);
+                
                 if (leagueTableDoc.exists()) {
+                    console.log("Document exists. Updating existing data.");
                     const teams = leagueTableDoc.data().teams;
                     const teamIndex = teams.findIndex(team => team.Team === teamData.Team);
                     if (teamIndex > -1) {
@@ -365,8 +369,9 @@
                     await setDoc(leagueTableDocRef, { teams: teams });
                     showMessageBox('Team data saved successfully!', 'success');
                 } else {
-                    showMessageBox('Database document not found. The app will create a new one with your data.', 'error');
+                    console.log("Document does not exist. Creating new document.");
                     await setDoc(leagueTableDocRef, { teams: [teamData] });
+                    showMessageBox('Team data saved successfully! A new database document was created.', 'success');
                 }
             } catch (error) {
                 console.error("Failed to save data:", error);
