@@ -30,23 +30,14 @@
         }
         
         // This flag ensures the code only runs once, preventing duplicate listeners.
-        if (window.appInitialized) {
-            return;
-        }
-        window.appInitialized = true;
-            
+        window.appInitialized = false;
+
         document.addEventListener('DOMContentLoaded', async () => {
-            // Your web app's Firebase configuration
-            const firebaseConfig = {
-                apiKey: "AIzaSyBxM-mbtor0ABUfubnKyfx8tPKvwOkJcXs",
-                authDomain: "leaguetable-a39e6.firebaseapp.com",
-                projectId: "leaguetable-a39e6",
-                storageBucket: "leaguetable-a39e6.firebasestorage.app",
-                messagingSenderId: "599210530529",
-                appId: "1:599210530529:web:e7ab9542b27bc001a789a0",
-                measurementId: "G-J0SCL36FB9"
-            };
-            
+            if (window.appInitialized) {
+                return;
+            }
+            window.appInitialized = true;
+
             const teamForm = document.getElementById('team-form');
             const teamNameInput = document.getElementById('team-name');
             const pldInput = document.getElementById('pld');
@@ -59,115 +50,132 @@
             const tbpInput = document.getElementById('tbp');
             const lbpInput = document.getElementById('lbp');
             const ptsInput = document.getElementById('pts');
-        
+            
+            // Your web app's Firebase configuration
+            const firebaseConfig = {
+                apiKey: "AIzaSyBxM-mbtor0ABUfubnKyfx8tPKvwOkJcXs",
+                authDomain: "leaguetable-a39e6.firebaseapp.com",
+                projectId: "leaguetable-a39e6",
+                storageBucket: "leaguetable-a39e6.firebasestorage.app",
+                messagingSenderId: "599210530529",
+                appId: "1:599210530529:web:e7ab9542b27bc001a789a0",
+                measurementId: "G-J0SCL36FB9"
+            };
+            
             let db, auth;
             let appId = firebaseConfig.projectId;
-            let leagueTableDocRef;
-            
+
             try {
-                // Initialize Firebase services
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
-                
-                // Sign in anonymously to enable database access
-                await signInAnonymously(auth);
-                console.log("Signed in anonymously.");
-                
-                leagueTableDocRef = doc(db, `artifacts/${appId}/public/data/league-table`);
-
-                // ==========================================================
-                //  REAL-TIME DATA LISTENER
-                // ==========================================================
-                onSnapshot(leagueTableDocRef, (docSnap) => {
-                    console.log("onSnapshot fired.");
-                    if (docSnap.exists() && docSnap.data().teams) {
-                        const leagueTableData = docSnap.data().teams;
-                        renderTable(leagueTableData);
-                    } else {
-                        console.log("No data found, using initial data.");
-                        const initialData = [
-                            { Pos: 1, Team: "Leighton Buzzard", Pld: 20, W: 19, D: 0, L: 1, PF: 758, PA: 168, PD: 590, TBP: 14, LBP: 1, Pts: 96 },
-                            { Pos: 2, Team: "Rugby Lions", Pld: 20, W: 17, D: 0, L: 3, PF: 698, PA: 267, PD: 431, TBP: 11, LBP: 0, Pts: 83 },
-                            { Pos: 3, Team: "Luton", Pld: 20, W: 15, D: 0, L: 5, PF: 759, PA: 368, PD: 391, TBP: 16, LBP: 2, Pts: 80 },
-                            { Pos: 4, Team: "Rugby Welsh", Pld: 20, W: 14, D: 0, L: 6, PF: 640, PA: 454, PD: 186, TBP: 13, LBP: 2, Pts: 72 },
-                            { Pos: 5, Team: "Queens", Pld: 20, W: 11, D: 0, L: 9, PF: 510, PA: 529, PD: -19, TBP: 10, LBP: 1, Pts: 56 },
-                            { Pos: 6, Team: "Aylestone Athletic", Pld: 20, W: 10, D: 1, L: 9, PF: 546, PA: 613, PD: -67, TBP: 7, LBP: 2, Pts: 52 },
-                            { Pos: 7, Team: "Sileby Town", Pld: 20, W: 10, D: 1, L: 9, PF: 538, PA: 494, PD: 44, TBP: 11, LBP: 2, Pts: 50 },
-                            { Pos: 8, Team: "Stamford College Old Boys", Pld: 20, W: 6, D: 1, L: 13, PF: 354, PA: 552, PD: -198, TBP: 4, LBP: 2, Pts: 33 },
-                            { Pos: 9, Team: "Northampton Mens Own", Pld: 20, W: 3, D: 1, L: 16, PF: 359, PA: 655, PD: -296, TBP: 6, LBP: 2, Pts: 22 },
-                            { Pos: 10, Team: "South Leicester", Pld: 20, W: 2, D: 0, L: 18, PF: 209, PA: 776, PD: -567, TBP: 1, LBP: 0, Pts: -11 },
-                            { Pos: 11, Team: "Deepings", Pld: 20, W: 1, D: 0, L: 19, PF: 188, PA: 683, PD: -495, TBP: 3, LBP: 2, Pts: -11 }
-                        ];
-                        setDoc(leagueTableDocRef, { teams: initialData });
-                    }
-                });
-
-                // ==========================================================
-                //  FORM SUBMISSION AND DATA UPDATE
-                // ==========================================================
-                teamForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    console.log("Form submission event fired.");
-                    try {
-                        // Input validation
-                        const teamName = document.getElementById('team-name').value.trim();
-                        const pld = parseInt(document.getElementById('pld').value);
-                        const w = parseInt(document.getElementById('w').value);
-                        const d = parseInt(document.getElementById('d').value);
-                        const l = parseInt(document.getElementById('l').value);
-                        const pf = parseInt(document.getElementById('pf').value);
-                        const pa = parseInt(document.getElementById('pa').value);
-                        const pd = parseInt(document.getElementById('pd').value);
-                        const tbp = parseInt(document.getElementById('tbp').value);
-                        const lbp = parseInt(document.getElementById('lbp').value);
-                        const pts = parseInt(document.getElementById('pts').value);
-                        
-                        if (!teamName || isNaN(pld) || isNaN(w) || isNaN(d) || isNaN(l) || isNaN(pf) || isNaN(pa) || isNaN(pd) || isNaN(tbp) || isNaN(lbp) || isNaN(pts)) {
-                            showMessageBox('Please fill out all fields with valid data.', 'error');
-                            console.error("Validation failed: Missing or invalid input.");
-                            return;
-                        }
-                        
-                        const teamData = { Team: teamName, Pld: pld, W: w, D: d, L: l, PF: pf, PA: pa, PD: pd, TBP: tbp, LBP: lbp, Pts: pts };
-                        console.log("Attempting to get database document...");
-                        const leagueTableDoc = await getDoc(leagueTableDocRef);
-                        
-                        let teams;
-                        if (leagueTableDoc.exists()) {
-                            console.log("Document exists. Updating existing data.");
-                            teams = leagueTableDoc.data().teams;
-                            const teamIndex = teams.findIndex(team => team.Team === teamData.Team);
-                            if (teamIndex > -1) {
-                                teams[teamIndex] = teamData;
-                            } else {
-                                teams.push(teamData);
-                            }
-                        } else {
-                            console.log("Document does not exist. Creating new document.");
-                            teams = [teamData];
-                        }
-                        
-                        teams.sort((a, b) => {
-                            if (b.Pts !== a.Pts) return b.Pts - a.Pts;
-                            return b.PD - a.PD;
-                        });
-                        teams.forEach((team, index) => team.Pos = index + 1);
-                        
-                        await setDoc(leagueTableDocRef, { teams: teams });
-                        showMessageBox('Team data saved successfully!', 'success');
-                    } catch (error) {
-                        console.error("Failed to save data:", error);
-                        showMessageBox(`Failed to save data. Please check the console for more details. Error: ${error.message}`, 'error');
-                    } finally {
-                        document.getElementById('team-form').reset();
-                    }
-                });
             } catch (error) {
-                console.error("Firebase initialization or authentication failed:", error);
-                showMessageBox('Firebase is not configured correctly or authentication failed. Please check the console for details.', 'error');
+                console.error("Firebase initialization failed:", error);
+                showMessageBox('Firebase is not configured. Please check your firebaseConfig object.', 'error');
+                return;
             }
 
+            try {
+                await signInAnonymously(auth);
+                console.log("Signed in anonymously.");
+            } catch (error) {
+                console.error("Anonymous sign-in failed:", error);
+                showMessageBox('Anonymous sign-in failed. Check your Firebase Authentication setup.', 'error');
+                return;
+            }
+
+            // Correctly define the document path
+            const leagueTableDocRef = doc(db, `artifacts/${appId}/public/data/league-table`);
+
+            // ==========================================================
+            //  REAL-TIME DATA LISTENER
+            // ==========================================================
+            onSnapshot(leagueTableDocRef, async (docSnap) => {
+                console.log("onSnapshot fired.");
+                if (docSnap.exists() && docSnap.data().teams) {
+                    const leagueTableData = docSnap.data().teams;
+                    renderTable(leagueTableData);
+                } else {
+                    console.log("No data found, using initial data.");
+                    const initialData = [
+                        { Pos: 1, Team: "Leighton Buzzard", Pld: 20, W: 19, D: 0, L: 1, PF: 758, PA: 168, PD: 590, TBP: 14, LBP: 1, Pts: 96 },
+                        { Pos: 2, Team: "Rugby Lions", Pld: 20, W: 17, D: 0, L: 3, PF: 698, PA: 267, PD: 431, TBP: 11, LBP: 0, Pts: 83 },
+                        { Pos: 3, Team: "Luton", Pld: 20, W: 15, D: 0, L: 5, PF: 759, PA: 368, PD: 391, TBP: 16, LBP: 2, Pts: 80 },
+                        { Pos: 4, Team: "Rugby Welsh", Pld: 20, W: 14, D: 0, L: 6, PF: 640, PA: 454, PD: 186, TBP: 13, LBP: 2, Pts: 72 },
+                        { Pos: 5, Team: "Queens", Pld: 20, W: 11, D: 0, L: 9, PF: 510, PA: 529, PD: -19, TBP: 10, LBP: 1, Pts: 56 },
+                        { Pos: 6, Team: "Aylestone Athletic", Pld: 20, W: 10, D: 1, L: 9, PF: 546, PA: 613, PD: -67, TBP: 7, LBP: 2, Pts: 52 },
+                        { Pos: 7, Team: "Sileby Town", Pld: 20, W: 10, D: 1, L: 9, PF: 538, PA: 494, PD: 44, TBP: 11, LBP: 2, Pts: 50 },
+                        { Pos: 8, Team: "Stamford College Old Boys", Pld: 20, W: 6, D: 1, L: 13, PF: 354, PA: 552, PD: -198, TBP: 4, LBP: 2, Pts: 33 },
+                        { Pos: 9, Team: "Northampton Mens Own", Pld: 20, W: 3, D: 1, L: 16, PF: 359, PA: 655, PD: -296, TBP: 6, LBP: 2, Pts: 22 },
+                        { Pos: 10, Team: "South Leicester", Pld: 20, W: 2, D: 0, L: 18, PF: 209, PA: 776, PD: -567, TBP: 1, LBP: 0, Pts: -11 },
+                        { Pos: 11, Team: "Deepings", Pld: 20, W: 1, D: 0, L: 19, PF: 188, PA: 683, PD: -495, TBP: 3, LBP: 2, Pts: -11 }
+                    ];
+                    await setDoc(leagueTableDocRef, { teams: initialData });
+                }
+            });
+
+            // ==========================================================
+            //  FORM SUBMISSION AND DATA UPDATE
+            // ==========================================================
+            const teamForm = document.getElementById('team-form');
+            teamForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                console.log("Form submission event fired.");
+                try {
+                    // Input validation
+                    const teamName = document.getElementById('team-name').value.trim();
+                    const pld = parseInt(document.getElementById('pld').value);
+                    const w = parseInt(document.getElementById('w').value);
+                    const d = parseInt(document.getElementById('d').value);
+                    const l = parseInt(document.getElementById('l').value);
+                    const pf = parseInt(document.getElementById('pf').value);
+                    const pa = parseInt(document.getElementById('pa').value);
+                    const pd = parseInt(document.getElementById('pd').value);
+                    const tbp = parseInt(document.getElementById('tbp').value);
+                    const lbp = parseInt(document.getElementById('lbp').value);
+                    const pts = parseInt(document.getElementById('pts').value);
+                    
+                    if (!teamName || isNaN(pld) || isNaN(w) || isNaN(d) || isNaN(l) || isNaN(pf) || isNaN(pa) || isNaN(pd) || isNaN(tbp) || isNaN(lbp) || isNaN(pts)) {
+                        showMessageBox('Please fill out all fields with valid data.', 'error');
+                        console.error("Validation failed: Missing or invalid input.");
+                        return;
+                    }
+                    
+                    const teamData = { Team: teamName, Pld: pld, W: w, D: d, L: l, PF: pf, PA: pa, PD: pd, TBP: tbp, LBP: lbp, Pts: pts };
+                    console.log("Attempting to get database document...");
+                    const leagueTableDoc = await getDoc(leagueTableDocRef);
+                    
+                    let teams;
+                    if (leagueTableDoc.exists()) {
+                        console.log("Document exists. Updating existing data.");
+                        teams = leagueTableDoc.data().teams;
+                        const teamIndex = teams.findIndex(team => team.Team === teamData.Team);
+                        if (teamIndex > -1) {
+                            teams[teamIndex] = teamData;
+                        } else {
+                            teams.push(teamData);
+                        }
+                    } else {
+                        console.log("Document does not exist. Creating new document.");
+                        teams = [teamData];
+                    }
+                    
+                    teams.sort((a, b) => {
+                        if (b.Pts !== a.Pts) return b.Pts - a.Pts;
+                        return b.PD - a.PD;
+                    });
+                    teams.forEach((team, index) => team.Pos = index + 1);
+                    
+                    await setDoc(leagueTableDocRef, { teams: teams });
+                    showMessageBox('Team data saved successfully!', 'success');
+                } catch (error) {
+                    console.error("Failed to save data:", error);
+                    showMessageBox(`Failed to save data. Please check the console for more details. Error: ${error.message}`, 'error');
+                } finally {
+                    document.getElementById('team-form').reset();
+                }
+            });
+        
             // ==========================================================
             //  TABLE RENDERING FUNCTION
             // ==========================================================
@@ -509,12 +517,13 @@
             return;
         }
 
+        // Correctly define the document path
         const leagueTableDocRef = doc(db, `artifacts/${appId}/public/data/league-table`);
 
         // ==========================================================
         //  REAL-TIME DATA LISTENER
         // ==========================================================
-        onSnapshot(leagueTableDocRef, (docSnap) => {
+        onSnapshot(leagueTableDocRef, async (docSnap) => {
             console.log("onSnapshot fired.");
             if (docSnap.exists() && docSnap.data().teams) {
                 const leagueTableData = docSnap.data().teams;
@@ -534,13 +543,14 @@
                     { Pos: 10, Team: "South Leicester", Pld: 20, W: 2, D: 0, L: 18, PF: 209, PA: 776, PD: -567, TBP: 1, LBP: 0, Pts: -11 },
                     { Pos: 11, Team: "Deepings", Pld: 20, W: 1, D: 0, L: 19, PF: 188, PA: 683, PD: -495, TBP: 3, LBP: 2, Pts: -11 }
                 ];
-                setDoc(leagueTableDocRef, { teams: initialData });
+                await setDoc(leagueTableDocRef, { teams: initialData });
             }
         });
 
         // ==========================================================
         //  FORM SUBMISSION AND DATA UPDATE
         // ==========================================================
+        const teamForm = document.getElementById('team-form');
         teamForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             console.log("Form submission event fired.");
