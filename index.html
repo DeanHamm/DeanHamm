@@ -12,7 +12,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Firebase configuration and initialization
         const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
@@ -329,7 +329,7 @@
                     Pts: parseInt(ptsInput.value)
                 };
 
-                const leagueTableDoc = await doc(window.db, `artifacts/${appId}/public/data/league-table`).get();
+                const leagueTableDoc = await getDoc(leagueTableDocRef);
                 if (leagueTableDoc.exists()) {
                     const teams = leagueTableDoc.data().teams;
                     const teamIndex = teams.findIndex(team => team.Team === teamData.Team);
