@@ -29,6 +29,12 @@
             }
         }
         
+        // This flag ensures the code only runs once, preventing duplicate listeners.
+        if (window.appInitialized) {
+            return;
+        }
+        window.appInitialized = true;
+            
         document.addEventListener('DOMContentLoaded', async () => {
             // Your web app's Firebase configuration
             const firebaseConfig = {
@@ -40,12 +46,6 @@
                 appId: "1:599210530529:web:e7ab9542b27bc001a789a0",
                 measurementId: "G-J0SCL36FB9"
             };
-            
-            // This flag ensures the code only runs once, preventing duplicate listeners.
-            if (window.appInitialized) {
-                return;
-            }
-            window.appInitialized = true;
             
             const teamForm = document.getElementById('team-form');
             const teamNameInput = document.getElementById('team-name');
@@ -133,28 +133,29 @@
                         console.log("Attempting to get database document...");
                         const leagueTableDoc = await getDoc(leagueTableDocRef);
                         
+                        let teams;
                         if (leagueTableDoc.exists()) {
                             console.log("Document exists. Updating existing data.");
-                            const teams = leagueTableDoc.data().teams;
+                            teams = leagueTableDoc.data().teams;
                             const teamIndex = teams.findIndex(team => team.Team === teamData.Team);
                             if (teamIndex > -1) {
                                 teams[teamIndex] = teamData;
                             } else {
                                 teams.push(teamData);
                             }
-                            teams.sort((a, b) => {
-                                if (b.Pts !== a.Pts) return b.Pts - a.Pts;
-                                return b.PD - a.PD;
-                            });
-                            teams.forEach((team, index) => team.Pos = index + 1);
-                            
-                            await setDoc(leagueTableDocRef, { teams: teams });
-                            showMessageBox('Team data saved successfully!', 'success');
                         } else {
                             console.log("Document does not exist. Creating new document.");
-                            await setDoc(leagueTableDocRef, { teams: [teamData] });
-                            showMessageBox('Team data saved successfully! A new database document was created.', 'success');
+                            teams = [teamData];
                         }
+                        
+                        teams.sort((a, b) => {
+                            if (b.Pts !== a.Pts) return b.Pts - a.Pts;
+                            return b.PD - a.PD;
+                        });
+                        teams.forEach((team, index) => team.Pos = index + 1);
+                        
+                        await setDoc(leagueTableDocRef, { teams: teams });
+                        showMessageBox('Team data saved successfully!', 'success');
                     } catch (error) {
                         console.error("Failed to save data:", error);
                         showMessageBox(`Failed to save data. Please check the console for more details. Error: ${error.message}`, 'error');
@@ -438,8 +439,15 @@
 </div>
 
 <script type="module">
-    // This script runs after the Firebase SDKs are loaded.
+    // This flag ensures the code only runs once, preventing duplicate listeners.
+    window.appInitialized = false;
+
     document.addEventListener('DOMContentLoaded', async () => {
+        if (window.appInitialized) {
+            return;
+        }
+        window.appInitialized = true;
+
         const teamForm = document.getElementById('team-form');
         const teamNameInput = document.getElementById('team-name');
         const pldInput = document.getElementById('pld');
@@ -482,7 +490,6 @@
         let db, auth;
         let appId = firebaseConfig.projectId;
 
-        // Initialize Firebase and get auth instance
         try {
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
@@ -493,7 +500,6 @@
             return;
         }
 
-        // Sign in anonymously
         try {
             await signInAnonymously(auth);
             console.log("Signed in anonymously.");
@@ -535,7 +541,6 @@
         // ==========================================================
         //  FORM SUBMISSION AND DATA UPDATE
         // ==========================================================
-        const teamForm = document.getElementById('team-form');
         teamForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             console.log("Form submission event fired.");
@@ -563,28 +568,29 @@
                 console.log("Attempting to get database document...");
                 const leagueTableDoc = await getDoc(leagueTableDocRef);
                 
+                let teams;
                 if (leagueTableDoc.exists()) {
                     console.log("Document exists. Updating existing data.");
-                    const teams = leagueTableDoc.data().teams;
+                    teams = leagueTableDoc.data().teams;
                     const teamIndex = teams.findIndex(team => team.Team === teamData.Team);
                     if (teamIndex > -1) {
                         teams[teamIndex] = teamData;
                     } else {
                         teams.push(teamData);
                     }
-                    teams.sort((a, b) => {
-                        if (b.Pts !== a.Pts) return b.Pts - a.Pts;
-                        return b.PD - a.PD;
-                    });
-                    teams.forEach((team, index) => team.Pos = index + 1);
-                    
-                    await setDoc(leagueTableDocRef, { teams: teams });
-                    showMessageBox('Team data saved successfully!', 'success');
                 } else {
                     console.log("Document does not exist. Creating new document.");
-                    await setDoc(leagueTableDocRef, { teams: [teamData] });
-                    showMessageBox('Team data saved successfully! A new database document was created.', 'success');
+                    teams = [teamData];
                 }
+                
+                teams.sort((a, b) => {
+                    if (b.Pts !== a.Pts) return b.Pts - a.Pts;
+                    return b.PD - a.PD;
+                });
+                teams.forEach((team, index) => team.Pos = index + 1);
+                
+                await setDoc(leagueTableDocRef, { teams: teams });
+                showMessageBox('Team data saved successfully!', 'success');
             } catch (error) {
                 console.error("Failed to save data:", error);
                 showMessageBox(`Failed to save data. Please check the console for more details. Error: ${error.message}`, 'error');
