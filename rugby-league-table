@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RFU Counties 3 Midlands East (South) League Table App</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- html2canvas for taking a screenshot of the table -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase configuration and initialization
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        if (Object.keys(firebaseConfig).length > 0) {
+            const app = initializeApp(firebaseConfig);
+            window.db = getFirestore(app);
+            window.auth = getAuth(app);
+        } else {
+            console.error("Firebase config is missing. Data persistence will not work.");
+        }
+
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Function to handle authentication
+        async function authenticateUser() {
+            if (!window.auth) return;
+            try {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(window.auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(window.auth);
+                }
+            } catch (error) {
+                console.error("Authentication failed:", error);
+            }
+        }
+        
+        window.isAuthReady = false;
+        // Listen for authentication state changes to set the ready flag
+        onAuthStateChanged(window.auth, (user) => {
+            if (user) {
+                console.log("User is authenticated:", user.uid);
+                window.isAuthReady = true;
+            } else {
+                console.log("User is not authenticated. Using anonymous sign-in.");
+                authenticateUser();
+            }
+        });
+    </script>
+    <style>
+        body {
+            font-family: 'Calibri', sans-serif;
+            background-color: #f3f4f6;
+            color: #374151;
+        }
+        .container {
+            max-width: 1200px;
+        }
+        table {
+            border-collapse: separate;
+            border-spacing: 0 0.5rem;
+            width: 100%;
+        }
+        thead th {
+            text-align: left;
+            padding: 1rem 0.75rem;
+            background-color: #e5e7eb;
+            color: #374151;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.875rem;
+        }
+        thead th:first-child {
+            border-top-left-radius: 0.5rem;
+        }
+        thead th:last-child {
+            border-top-right-radius: 0.5rem;
+        }
+        tbody tr {
+            transition: transform 0.2s ease-in-out;
+            color: #1f2937;
+        }
+        tbody tr:hover {
+            transform: scale(1.01);
+        }
+        tbody tr:nth-child(odd) {
+            background-color: #ffffff;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #f3f4f6;
+        }
+        tbody td {
+            padding: 1rem 0.75rem;
+            white-space: nowrap;
+        }
+        tbody tr td:first-child {
+            border-top-left-radius: 0.5rem;
+            border-bottom-left-radius: 0.5rem;
+        }
+        tbody tr td:last-child {
+            border-top-right-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+
+<div id="league-table-container" class="container mx-auto p-4 md:p-8">
+    <div class="bg-gray-200 shadow-lg rounded-lg p-6 mb-8">
+        <h2 class="text-xl font-bold mb-4">Update League Table Data</h2>
+        <form id="team-form" class="space-y-4">
+            <input type="hidden" id="team-name-id">
+            <div>
+                <label for="team-name" class="block text-sm font-medium text-gray-700">Team Name</label>
+                <input type="text" id="team-name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
+            </div>
+            <div class="grid grid-cols-3 md:grid-cols-5 gap-4">
+                <div>
+                    <label for="pld" class="block text-sm font-medium text-gray-700">Pld</label>
+                    <input type="number" id="pld" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                </div>
+                <div>
+                    <label for="w" class="block text-sm font-medium text-gray-700">W</label>
+                    <input type="number" id="w" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                </div>
+                <div>
+                    <label for="d" class="block text-sm font-medium text-gray-700">D</label>
+                    <input type="number" id="d" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                </div>
+                <div>
+                    <label for="l" class="block text-sm font-medium text-gray-700">L</label>
+                    <input type="number" id="l" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                </div>
+                <div>
+                    <label for="pf" class="block text-sm font-medium text-gray-700">PF</label>
+                    <input type="number" id="pf" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                </div>
+                <div>
+                    <label for="pa" class="block text-sm font-medium text-gray-700">PA</label>
+                    <input type="number" id="pa" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                </div>
+                <div>
+                    <label for="pd" class="block text-sm font-medium text-gray-700">PD</label>
+                    <input type="number" id="pd" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                </div>
+                <div>
+                    <label for="tbp" class="block text-sm font-medium text-gray-700">TBP</label>
+                    <input type="number" id="tbp" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                </div>
+                <div>
+                    <label for="lbp" class="block text-sm font-medium text-gray-700">LBP</label>
+                    <input type="number" id="lbp" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                </div>
+                <div>
+                    <label for="pts" class="block text-sm font-medium text-gray-700">Pts</label>
+                    <input type="number" id="pts" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                </div>
+            </div>
+            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition-all duration-300">
+                Save Team
+            </button>
+        </form>
+    </div>
+
+    <div id="table-to-capture" class="bg-white shadow-lg rounded-lg overflow-hidden p-4">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-6 text-center">RFU Counties 3 Midlands East (South) League Table</h1>
+        <table id="league-table" class="min-w-full">
+            <!-- Table headers will be generated here by JavaScript -->
+            <thead>
+                <tr></tr>
+            </thead>
+            <!-- Table body content will be generated here by JavaScript -->
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+    <div class="mt-6 flex justify-center">
+        <button id="download-btn" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 ease-in-out">
+            Download Table as Image
+        </button>
+    </div>
+</div>
+
+<script type="module">
+    // This script runs after the Firebase SDKs are loaded.
+    document.addEventListener('DOMContentLoaded', async () => {
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const teamForm = document.getElementById('team-form');
+        const teamNameInput = document.getElementById('team-name');
+        const pldInput = document.getElementById('pld');
+        const wInput = document.getElementById('w');
+        const dInput = document.getElementById('d');
+        const lInput = document.getElementById('l');
+        const pfInput = document.getElementById('pf');
+        const paInput = document.getElementById('pa');
+        const pdInput = document.getElementById('pd');
+        const tbpInput = document.getElementById('tbp');
+        const lbpInput = document.getElementById('lbp');
+        const ptsInput = document.getElementById('pts');
+        
+        // Wait for Firebase authentication to be ready
+        function waitForAuth() {
+            return new Promise(resolve => {
+                const checkAuth = setInterval(() => {
+                    if (window.isAuthReady && window.db) {
+                        clearInterval(checkAuth);
+                        resolve();
+                    }
+                }, 100);
+            });
+        }
+        await waitForAuth();
+
+        // The following code now runs only after Firebase is ready.
+        const leagueTableDocRef = doc(window.db, `artifacts/${appId}/public/data/league-table`);
+
+        // ==========================================================
+        //  REAL-TIME DATA LISTENER
+        // ==========================================================
+        // Fetches data from Firestore in real-time
+        onSnapshot(leagueTableDocRef, (docSnap) => {
+            if (docSnap.exists() && docSnap.data().teams) {
+                const leagueTableData = docSnap.data().teams;
+                renderTable(leagueTableData);
+            } else {
+                console.log("No data found, using initial data.");
+                // If no data exists, use the initial data and save it.
+                const initialData = [
+                    { Pos: 1, Team: "Leighton Buzzard", Pld: 20, W: 19, D: 0, L: 1, PF: 758, PA: 168, PD: 590, TBP: 14, LBP: 1, Pts: 96 },
+                    { Pos: 2, Team: "Rugby Lions", Pld: 20, W: 17, D: 0, L: 3, PF: 698, PA: 267, PD: 431, TBP: 11, LBP: 0, Pts: 83 },
+                    { Pos: 3, Team: "Luton", Pld: 20, W: 15, D: 0, L: 5, PF: 759, PA: 368, PD: 391, TBP: 16, LBP: 2, Pts: 80 },
+                    { Pos: 4, Team: "Rugby Welsh", Pld: 20, W: 14, D: 0, L: 6, PF: 640, PA: 454, PD: 186, TBP: 13, LBP: 2, Pts: 72 },
+                    { Pos: 5, Team: "Queens", Pld: 20, W: 11, D: 0, L: 9, PF: 510, PA: 529, PD: -19, TBP: 10, LBP: 1, Pts: 56 },
+                    { Pos: 6, Team: "Aylestone Athletic", Pld: 20, W: 10, D: 1, L: 9, PF: 546, PA: 613, PD: -67, TBP: 7, LBP: 2, Pts: 52 },
+                    { Pos: 7, Team: "Sileby Town", Pld: 20, W: 10, D: 1, L: 9, PF: 538, PA: 494, PD: 44, TBP: 11, LBP: 2, Pts: 50 },
+                    { Pos: 8, Team: "Stamford College Old Boys", Pld: 20, W: 6, D: 1, L: 13, PF: 354, PA: 552, PD: -198, TBP: 4, LBP: 2, Pts: 33 },
+                    { Pos: 9, Team: "Northampton Mens Own", Pld: 20, W: 3, D: 1, L: 16, PF: 359, PA: 655, PD: -296, TBP: 6, LBP: 2, Pts: 22 },
+                    { Pos: 10, Team: "South Leicester", Pld: 20, W: 2, D: 0, L: 18, PF: 209, PA: 776, PD: -567, TBP: 1, LBP: 0, Pts: -11 },
+                    { Pos: 11, Team: "Deepings", Pld: 20, W: 1, D: 0, L: 19, PF: 188, PA: 683, PD: -495, TBP: 3, LBP: 2, Pts: -11 }
+                ];
+                setDoc(leagueTableDocRef, { teams: initialData });
+                renderTable(initialData);
+            }
+        });
+
+        // ==========================================================
+        //  FORM SUBMISSION AND DATA UPDATE
+        // ==========================================================
+        teamForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const teamData = {
+                Team: teamNameInput.value,
+                Pld: parseInt(pldInput.value),
+                W: parseInt(wInput.value),
+                D: parseInt(dInput.value),
+                L: parseInt(lInput.value),
+                PF: parseInt(pfInput.value),
+                PA: parseInt(paInput.value),
+                PD: parseInt(pdInput.value),
+                TBP: parseInt(tbpInput.value),
+                LBP: parseInt(lbpInput.value),
+                Pts: parseInt(ptsInput.value)
+            };
+
+            const leagueTableDoc = await doc(window.db, `artifacts/${appId}/public/data/league-table`).get();
+            if (leagueTableDoc.exists()) {
+                const teams = leagueTableDoc.data().teams;
+                // Find and update the team
+                const teamIndex = teams.findIndex(team => team.Team === teamData.Team);
+                if (teamIndex > -1) {
+                    teams[teamIndex] = teamData;
+                } else {
+                    // Add new team if not found
+                    teams.push(teamData);
+                }
+                // Re-sort the table by points and then by PD
+                teams.sort((a, b) => {
+                    if (b.Pts !== a.Pts) return b.Pts - a.Pts;
+                    return b.PD - a.PD;
+                });
+                // Recalculate position
+                teams.forEach((team, index) => team.Pos = index + 1);
+                
+                await setDoc(leagueTableDocRef, { teams: teams });
+                teamForm.reset();
+            }
+        });
+
+        // ==========================================================
+        //  TABLE RENDERING FUNCTION
+        // ==========================================================
+        function renderTable(leagueTableData) {
+            const tableHeadRow = document.querySelector('#league-table thead tr');
+            const tableBody = document.querySelector('#league-table tbody');
+
+            // Clear previous table content
+            tableHeadRow.innerHTML = '';
+            tableBody.innerHTML = '';
+
+            if (leagueTableData.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="11" class="text-center py-4 text-gray-500">No data to display.</td></tr>`;
+                return;
+            }
+
+            // Generate table headers from the keys of the first data object
+            const headers = Object.keys(leagueTableData[0]);
+            headers.forEach(headerText => {
+                const th = document.createElement('th');
+                th.textContent = headerText;
+                th.classList.add('px-4');
+                tableHeadRow.appendChild(th);
+            });
+
+            // Generate table rows and cells from the data array
+            leagueTableData.forEach(rowData => {
+                const tr = document.createElement('tr');
+                tr.classList.add('cursor-pointer');
+                tr.addEventListener('click', () => {
+                    document.getElementById('team-name-id').value = rowData.Team;
+                    teamNameInput.value = rowData.Team;
+                    pldInput.value = rowData.Pld;
+                    wInput.value = rowData.W;
+                    dInput.value = rowData.D;
+                    lInput.value = rowData.L;
+                    pfInput.value = rowData.PF;
+                    paInput.value = rowData.PA;
+                    pdInput.value = rowData.PD;
+                    tbpInput.value = rowData.TBP;
+                    lbpInput.value = rowData.LBP;
+                    ptsInput.value = rowData.Pts;
+                });
+                
+                Object.values(rowData).forEach((cellValue, index) => {
+                    const td = document.createElement('td');
+                    if (headers[index] === 'Team') {
+                        td.innerHTML = `<span class="font-semibold">${cellValue}</span>`;
+                    } else {
+                        td.textContent = cellValue;
+                    }
+                    td.classList.add('px-4');
+                    tr.appendChild(td);
+                });
+                tableBody.appendChild(tr);
+            });
+        }
+
+        // ==========================================================
+        //  DOWNLOAD IMAGE FUNCTIONALITY
+        // ==========================================================
+        const downloadBtn = document.getElementById('download-btn');
+        const elementToCapture = document.getElementById('table-to-capture');
+        
+        if (downloadBtn && elementToCapture) {
+            downloadBtn.addEventListener('click', () => {
+                html2canvas(elementToCapture, {
+                    backgroundColor: '#ffffff',
+                    scale: 2,
+                    useCORS: true
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'league-table.png';
+                    link.href = canvas.toDataURL('image/png');
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                });
+            });
+        }
+    });
+</script>
+
+</body>
+</html>
