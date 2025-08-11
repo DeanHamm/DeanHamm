@@ -30,7 +30,7 @@
         }
         
         // This flag ensures the code only runs once, preventing duplicate listeners.
-        window.appInitialized = false;
+        window.appInitialized = window.appInitialized || false;
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (window.appInitialized) {
@@ -54,9 +54,9 @@
             // Your web app's Firebase configuration
             const firebaseConfig = {
                 apiKey: "AIzaSyBxM-mbtor0ABUfubnKyfx8tPKvwOkJcXs",
-                authDomain: "leaguetable-a39e6.firebaseapp.com",
-                projectId: "leaguetable", // CORRECTED: Set to your actual project ID
-                storageBucket: "leaguetable-a39e6.firebasestorage.app",
+                authDomain: "leaguetable.firebaseapp.com",
+                projectId: "leaguetable", // CORRECTED: Now uses your actual project ID
+                storageBucket: "leaguetable.firebasestorage.app",
                 messagingSenderId: "599210530529",
                 appId: "1:599210530529:web:e7ab9542b27bc001a789a0",
                 measurementId: "G-J0SCL36FB9"
@@ -488,7 +488,7 @@
         const firebaseConfig = {
             apiKey: "AIzaSyBxM-mbtor0ABUfubnKyfx8tPKvwOkJcXs",
             authDomain: "leaguetable.firebaseapp.com",
-            projectId: "leaguetable", // CORRECTED: Now uses your actual project ID
+            projectId: "leaguetable",
             storageBucket: "leaguetable.firebasestorage.app",
             messagingSenderId: "599210530529",
             appId: "1:599210530529:web:e7ab9542b27bc001a789a0",
